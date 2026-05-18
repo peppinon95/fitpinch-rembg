@@ -11,13 +11,10 @@ app = FastAPI()
 
 API_KEY = os.getenv("BG_REMOVE_API_KEY", "").strip()
 
-# 1 richiesta alla volta: evita RAM piena su Render
 REMOVE_BG_CONCURRENCY = int(os.getenv("REMOVE_BG_CONCURRENCY", "1"))
 QUEUE_TIMEOUT_SECONDS = int(os.getenv("QUEUE_TIMEOUT_SECONDS", "180"))
 
 queue = asyncio.Semaphore(REMOVE_BG_CONCURRENCY)
-
-# Modello leggero per consumare meno RAM
 SESSION = new_session("u2netp")
 
 
@@ -63,6 +60,19 @@ async def remove_bg(
         )
 
         image = Image.open(BytesIO(output_bytes)).convert("RGBA")
+
+        bbox = image.getbbox()
+        if bbox:
+            image = image.crop(bbox)
+
+        padding = 32
+        canvas = Image.new(
+            "RGBA",
+            (image.width + padding * 2, image.height + padding * 2),
+            (0, 0, 0, 0),
+        )
+        canvas.paste(image, (padding, padding), image)
+        image = canvas
 
         max_side = 1280
         w, h = image.size
