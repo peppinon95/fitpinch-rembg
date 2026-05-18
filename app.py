@@ -37,28 +37,24 @@ async def remove_bg(
     if len(input_bytes) > 12 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Image too large")
 
-    try:
-        output_bytes = remove(input_bytes)
+    output_bytes = remove(input_bytes)
 
-        image = Image.open(BytesIO(output_bytes)).convert("RGBA")
+    image = Image.open(BytesIO(output_bytes)).convert("RGBA")
 
-        max_side = 1280
-        w, h = image.size
+    max_side = 1280
+    w, h = image.size
 
-        if max(w, h) > max_side:
-            ratio = max_side / max(w, h)
-            image = image.resize(
-                (int(w * ratio), int(h * ratio)),
-                Image.LANCZOS,
-            )
-
-        buffer = BytesIO()
-        image.save(buffer, format="PNG", optimize=True)
-
-        return Response(
-            content=buffer.getvalue(),
-            media_type="image/png",
+    if max(w, h) > max_side:
+        ratio = max_side / max(w, h)
+        image = image.resize(
+            (int(w * ratio), int(h * ratio)),
+            Image.LANCZOS,
         )
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    buffer = BytesIO()
+    image.save(buffer, format="PNG", optimize=True)
+
+    return Response(
+        content=buffer.getvalue(),
+        media_type="image/png",
+    )
